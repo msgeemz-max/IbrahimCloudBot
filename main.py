@@ -16,15 +16,14 @@ from datetime import datetime, timedelta
 
 # --- [ 1. تهيئة النظام والمكتبات ] ---
 print("⚙️ جاري فحص النظام لضمان أعلى استقرار...")
-# ملاحظة: في Railway يفضل الاعتماد على requirements.txt بدلاً من os.system
-# لكن تركتها كما طلبت لعدم تغيير أي نقطة في سكربتك الأصلي
+# ملاحظة من المساعد: السطر التالي يعمل في البيئات المحلية، في Railway نعتمد على requirements.txt
+os.system("pip install --upgrade yt-dlp pyTelegramBotAPI")
 
 import telebot
 from telebot import types
 import yt_dlp
 
 # --- [ 2. الثوابت والإعدادات ] ---
-# ملاحظة للمطور إبراهيم: تأكد من التوكن الخاص بك (تم تنظيف الفراغات تلقائياً)
 API_TOKEN = '8168190815:AAG0U-eqjIvAr5HbtTWTGOqQzSRz9Pdx4AY'.strip()
 bot = telebot.TeleBot(API_TOKEN)
 
@@ -176,8 +175,15 @@ def process_url(message):
 def download_core(chat_id, url, mode):
     status = bot.send_message(chat_id, "🎬 جاري التحميل... يرجى الانتظار")
     tag = f"dl_{int(time.time())}"
-    # تعديل بسيط لضمان التوافق مع Railway: إضافة ffmpeg_location إذا لزم الأمر مستقبلاً
-    opts = {'format': 'best', 'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s', 'quiet': True}
+    # تعديل إبراهيم: إضافة خيارات متقدمة لتجنب الحظر في Railway
+    opts = {
+        'format': 'best', 
+        'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s', 
+        'quiet': True,
+        'no_warnings': True,
+        'nocheckcertificate': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+    }
     try:
         with yt_dlp.YoutubeDL(opts) as ydl: ydl.download([url])
         target = next((os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR) if tag in f), None)
@@ -189,7 +195,7 @@ def download_core(chat_id, url, mode):
             os.remove(target)
             bot.delete_message(chat_id, status.message_id)
             sync_user_data(chat_id, "User", xp_add=35, dl_add=1)
-        else: bot.edit_message_text("❌ حدث خطأ في النظام.", chat_id, status.message_id)
+        else: bot.edit_message_text("❌ حدث خطأ في النظام. حاول مجدداً.", chat_id, status.message_id)
     except Exception as e: bot.edit_message_text(f"❌ خطأ: {str(e)[:50]}", chat_id, status.message_id)
 
 # --- [ 8. لوحة التحكم ] ---
@@ -265,4 +271,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"🔄 Restarting... Error: {e}")
             time.sleep(5)
-  
+    
