@@ -2,7 +2,7 @@
 # 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.2)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 FIX: AUTO-ALERTS EVERY 10 MINS & SYNTAX CLEANUP
+# 🛠 FIX: TIKTOK BYPASS & PERSISTENT ALERTS
 # 📏 LENGTH: 360+ LINES
 # ======================================================
 
@@ -16,7 +16,6 @@ from datetime import datetime, timedelta
 
 # --- [ 1. تهيئة النظام والمكتبات ] ---
 print("⚙️ جاري فحص النظام لضمان أعلى استقرار...")
-# تنظيف المسار من أي ملفات مؤقتة قديمة
 os.system("pip install --upgrade yt-dlp pyTelegramBotAPI")
 
 import telebot
@@ -152,7 +151,7 @@ def claim_daily_gift(call):
     save_db(FILE_DAILY, daily)
     bot.answer_callback_query(call.id, f"🎊 مبروك! حصلت على {bonus} XP هديتك اليومية.", show_alert=True)
 
-# --- [ 7. محرك التحميل ] ---
+# --- [ 7. محرك التحميل (تم تحديثه لكسر حماية تيك توك) ] ---
 
 user_links = {}
 
@@ -173,10 +172,23 @@ def process_url(message):
 def download_core(chat_id, url, mode):
     status = bot.send_message(chat_id, "🎬 جاري التحميل... يرجى الانتظار")
     tag = f"dl_{int(time.time())}"
-    opts = {'format': 'best', 'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s', 'quiet': True}
+    
+    # إعدادات متقدمة لتخطي حظر تيك توك الحالي
+    opts = {
+        'format': 'best',
+        'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s',
+        'quiet': True,
+        'no_warnings': True,
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'nocheckcertificate': True
+    }
+    
     try:
-        with yt_dlp.YoutubeDL(opts) as ydl: ydl.download([url])
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            ydl.download([url])
+        
         target = next((os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR) if tag in f), None)
+        
         if target:
             with open(target, 'rb') as f:
                 cap = f"✅ تم التحميل بنجاح\n👨‍💻 المبرمج: إبراهيم مصطفى"
@@ -185,8 +197,10 @@ def download_core(chat_id, url, mode):
             os.remove(target)
             bot.delete_message(chat_id, status.message_id)
             sync_user_data(chat_id, "User", xp_add=35, dl_add=1)
-        else: bot.edit_message_text("❌ حدث خطأ في النظام.", chat_id, status.message_id)
-    except Exception as e: bot.edit_message_text(f"❌ خطأ: {str(e)[:50]}", chat_id, status.message_id)
+        else:
+            bot.edit_message_text("❌ حدث خطأ في النظام أو الرابط محمي.", chat_id, status.message_id)
+    except Exception as e:
+        bot.edit_message_text(f"❌ خطأ: {str(e)[:100]}", chat_id, status.message_id)
 
 # --- [ 8. لوحة التحكم ] ---
 
@@ -251,22 +265,19 @@ def callback_manager(call):
 # --- [ 10. نظام منع التوقف (Keep-Alive Alerts) ] ---
 
 def auto_refresh():
-    """يرسل رسالة للمطور كل 10 دقائق لضمان بقاء السيرفر نشطاً"""
     while True:
         try:
-            time.sleep(600) # الانتظار لمدة 10 دقائق (600 ثانية)
-            # إرسال إشعار للمطور إبراهيم
+            time.sleep(600) 
             bot.send_message(ADMIN_ID, f"🔄 [نبض النظام]\nالبوت مستقر ويعمل الآن على Railway.\n⏰ {datetime.now().strftime('%H:%M:%S')}")
             print(f"🔄 [Keep-Alive] تم إرسال إشعار النشاط بنجاح.")
         except Exception as e:
             print(f"⚠️ فشل إرسال نبض النظام: {e}")
-            time.sleep(30) # الانتظار قليلاً قبل إعادة المحاولة
+            time.sleep(30)
 
 # --- [ 11. تشغيل البوت ] ---
 
 if __name__ == "__main__":
     setup_bot_commands()
-    # تشغيل نظام التنبيهات في خيط منفصل لضمان استمرار البوت
     threading.Thread(target=auto_refresh, daemon=True).start()
     
     print("---------------------------------------")
@@ -278,4 +289,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"🔄 Restarting... Error: {e}")
             time.sleep(5)
-            
+        
