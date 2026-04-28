@@ -1,9 +1,9 @@
 # ======================================================
-# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.1)
+# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.2)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 FIX: SET PERMANENT DEVELOPER RANK FOR IBRAHIM
-# 📏 LENGTH: 350+ LINES
+# 🛠 FIX: AUTO-ALERTS EVERY 10 MINS & SYNTAX CLEANUP
+# 📏 LENGTH: 360+ LINES
 # ======================================================
 
 import os
@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 
 # --- [ 1. تهيئة النظام والمكتبات ] ---
 print("⚙️ جاري فحص النظام لضمان أعلى استقرار...")
+# تنظيف المسار من أي ملفات مؤقتة قديمة
 os.system("pip install --upgrade yt-dlp pyTelegramBotAPI")
 
 import telebot
@@ -69,7 +70,6 @@ def register_new_user(user_obj):
         save_db(FILE_USERS, users)
 
 def sync_user_data(uid, name, xp_add=0, dl_add=0):
-    """تحديث بيانات المستخدم مع ميزة رتبة المطور الخاصة"""
     data = get_db(FILE_RANKS)
     uid_s = str(uid)
     name = re.sub(r'[*_`\[\]]', '', str(name))
@@ -81,7 +81,6 @@ def sync_user_data(uid, name, xp_add=0, dl_add=0):
     data[uid_s]["dl"] += dl_add
     data[uid_s]["name"] = name
     
-    # --- [ تحديد الرتبة - فحص آيدي إبراهيم ] ---
     if uid == ADMIN_ID:
         data[uid_s]["level"] = "المطور الأساسي 👑"
     else:
@@ -225,14 +224,14 @@ def admin_cmd(message):
 def callback_manager(call):
     uid = call.from_user.id
     if call.data == "btn_back":
-        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.1", 
+        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.2", 
                               call.message.chat.id, call.message.message_id, reply_markup=build_main_menu())
     elif call.data == "btn_profile": show_profile(call)
     elif call.data == "btn_top": show_leaderboard(call)
     elif call.data == "btn_gift": claim_daily_gift(call)
     elif call.data == "btn_dl": initiate_dl(call)
     elif call.data == "btn_dev":
-        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.1\n🇮🇶 البلد: العراق"
+        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.2\n🇮🇶 البلد: العراق"
         bot.edit_message_text(txt, call.message.chat.id, call.message.message_id, reply_markup=build_back_button())
     elif call.data == "run_v":
         url = user_links.get(uid)
@@ -249,26 +248,29 @@ def callback_manager(call):
         m = bot.send_message(call.message.chat.id, "📢 أرسل رسالة الإذاعة:")
         bot.register_next_step_handler(m, handle_broadcast)
 
-# --- [ 10. نظام التحديث التلقائي (Keep-Alive) ] ---
+# --- [ 10. نظام منع التوقف (Keep-Alive Alerts) ] ---
 
 def auto_refresh():
-    """تحديث تلقائي كل 15 دقيقة لضمان استقرار السيرفر"""
+    """يرسل رسالة للمطور كل 10 دقائق لضمان بقاء السيرفر نشطاً"""
     while True:
         try:
-            time.sleep(900) # 15 دقيقة
-            print(f"🔄 [Auto-Refresh] تم تحديث حالة البوت بنجاح: {datetime.now().strftime('%H:%M:%S')}")
-        except Exception:
-            continue
+            time.sleep(600) # الانتظار لمدة 10 دقائق (600 ثانية)
+            # إرسال إشعار للمطور إبراهيم
+            bot.send_message(ADMIN_ID, f"🔄 [نبض النظام]\nالبوت مستقر ويعمل الآن على Railway.\n⏰ {datetime.now().strftime('%H:%M:%S')}")
+            print(f"🔄 [Keep-Alive] تم إرسال إشعار النشاط بنجاح.")
+        except Exception as e:
+            print(f"⚠️ فشل إرسال نبض النظام: {e}")
+            time.sleep(30) # الانتظار قليلاً قبل إعادة المحاولة
 
 # --- [ 11. تشغيل البوت ] ---
 
 if __name__ == "__main__":
     setup_bot_commands()
-    # تشغيل التحديث التلقائي في خلفية السكربت
+    # تشغيل نظام التنبيهات في خيط منفصل لضمان استمرار البوت
     threading.Thread(target=auto_refresh, daemon=True).start()
     
     print("---------------------------------------")
-    print("🚀 البوت يعمل الآن بنظام v43.1 المستقر")
+    print("🚀 البوت يعمل الآن بنظام v43.2 (نبض النشاط)")
     print("👨‍💻 المطور: إبراهيم مصطفى")
     print("---------------------------------------")
     while True:
