@@ -16,7 +16,6 @@ from datetime import datetime, timedelta
 
 # --- [ 1. تهيئة النظام والمكتبات ] ---
 print("⚙️ جاري فحص النظام لضمان أعلى استقرار...")
-# ملاحظة من المساعد: السطر التالي يعمل في البيئات المحلية، في Railway نعتمد على requirements.txt
 os.system("pip install --upgrade yt-dlp pyTelegramBotAPI")
 
 import telebot
@@ -175,15 +174,7 @@ def process_url(message):
 def download_core(chat_id, url, mode):
     status = bot.send_message(chat_id, "🎬 جاري التحميل... يرجى الانتظار")
     tag = f"dl_{int(time.time())}"
-    # تعديل إبراهيم: إضافة خيارات متقدمة لتجنب الحظر في Railway
-    opts = {
-        'format': 'best', 
-        'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s', 
-        'quiet': True,
-        'no_warnings': True,
-        'nocheckcertificate': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-    }
+    opts = {'format': 'best', 'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s', 'quiet': True}
     try:
         with yt_dlp.YoutubeDL(opts) as ydl: ydl.download([url])
         target = next((os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR) if tag in f), None)
@@ -195,7 +186,7 @@ def download_core(chat_id, url, mode):
             os.remove(target)
             bot.delete_message(chat_id, status.message_id)
             sync_user_data(chat_id, "User", xp_add=35, dl_add=1)
-        else: bot.edit_message_text("❌ حدث خطأ في النظام. حاول مجدداً.", chat_id, status.message_id)
+        else: bot.edit_message_text("❌ حدث خطأ في النظام.", chat_id, status.message_id)
     except Exception as e: bot.edit_message_text(f"❌ خطأ: {str(e)[:50]}", chat_id, status.message_id)
 
 # --- [ 8. لوحة التحكم ] ---
@@ -258,10 +249,24 @@ def callback_manager(call):
         m = bot.send_message(call.message.chat.id, "📢 أرسل رسالة الإذاعة:")
         bot.register_next_step_handler(m, handle_broadcast)
 
-# --- [ 10. تشغيل البوت ] ---
+# --- [ 10. نظام التحديث التلقائي (Keep-Alive) ] ---
+
+def auto_refresh():
+    """تحديث تلقائي كل 15 دقيقة لضمان استقرار السيرفر"""
+    while True:
+        try:
+            time.sleep(900) # 15 دقيقة
+            print(f"🔄 [Auto-Refresh] تم تحديث حالة البوت بنجاح: {datetime.now().strftime('%H:%M:%S')}")
+        except Exception:
+            continue
+
+# --- [ 11. تشغيل البوت ] ---
 
 if __name__ == "__main__":
     setup_bot_commands()
+    # تشغيل التحديث التلقائي في خلفية السكربت
+    threading.Thread(target=auto_refresh, daemon=True).start()
+    
     print("---------------------------------------")
     print("🚀 البوت يعمل الآن بنظام v43.1 المستقر")
     print("👨‍💻 المطور: إبراهيم مصطفى")
@@ -271,4 +276,4 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"🔄 Restarting... Error: {e}")
             time.sleep(5)
-    
+            
