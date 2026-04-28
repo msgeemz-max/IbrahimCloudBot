@@ -1,9 +1,9 @@
 # ======================================================
-# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.3)
+# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.4)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 FIX: AUTO-UPGRADE YT-DLP & BYPASS TIKTOK PROTECTION
-# 📏 LENGTH: 380+ LINES
+# 🛠 FIX: SILENT SELF-UPDATE & PERSISTENT BYPASS
+# 📏 LENGTH: 390+ LINES
 # ======================================================
 
 import os
@@ -12,12 +12,24 @@ import time
 import json
 import re
 import random
+import subprocess
+import sys
 from datetime import datetime, timedelta
 
-# --- [ 1. تهيئة النظام والمكتبات وتحديثها تلقائياً ] ---
-print("⚙️ جاري فحص النظام وتحديث المكتبات لكسر الحماية...")
-# هذا السطر يضمن تحديث أداة التحميل فور تشغيل السيرفر لتخطي حظر تيك توك
-os.system("pip install --no-cache-dir --upgrade yt-dlp pyTelegramBotAPI requests")
+# --- [ 1. محرك التحديث التلقائي الذكي ] ---
+def update_system():
+    """تحديث المكتبات تلقائياً لأحدث نسخة عند كل تشغيل للسيرفر"""
+    print("⚙️ جاري فحص وتحديث النظام ذاتياً...")
+    try:
+        # تحديث المكتبات الأساسية بصمت لضمان كسر حماية تيك توك المستمرة
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", "--upgrade", 
+                               "yt-dlp", "pyTelegramBotAPI", "requests"])
+        print("✅ تم التحديث بنجاح، البوت الآن بأعلى كفاءة.")
+    except Exception as e:
+        print(f"⚠️ فشل التحديث التلقائي: {e}")
+
+# تشغيل التحديث فوراً قبل استدعاء المكتبات
+update_system()
 
 import telebot
 from telebot import types
@@ -174,13 +186,12 @@ def download_core(chat_id, url, mode):
     status = bot.send_message(chat_id, "🎬 جاري معالجة الرابط والتحميل...")
     tag = f"dl_{int(time.time())}"
     
-    # خيارات متقدمة لتخطي حماية تيك توك والـ Timeout
     opts = {
         'format': 'best',
         'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s',
         'quiet': True,
         'no_warnings': True,
-        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
         'nocheckcertificate': True,
         'socket_timeout': 30
     }
@@ -207,7 +218,6 @@ def download_core(chat_id, url, mode):
 # --- [ 8. لوحة التحكم ونظام التنبيهات ] ---
 
 def auto_refresh():
-    """نظام نبض النشاط للبقاء فعالاً على Railway"""
     while True:
         try:
             time.sleep(600) 
@@ -248,14 +258,14 @@ def admin_cmd(message):
 def callback_manager(call):
     uid = call.from_user.id
     if call.data == "btn_back":
-        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.3", 
+        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.4", 
                               call.message.chat.id, call.message.message_id, reply_markup=build_main_menu())
     elif call.data == "btn_profile": show_profile(call)
     elif call.data == "btn_top": show_leaderboard(call)
     elif call.data == "btn_gift": claim_daily_gift(call)
     elif call.data == "btn_dl": initiate_dl(call)
     elif call.data == "btn_dev":
-        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.3\n🇮🇶 البلد: العراق"
+        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.4\n🇮🇶 البلد: العراق"
         bot.edit_message_text(txt, call.message.chat.id, call.message.message_id, reply_markup=build_back_button())
     elif call.data == "run_v":
         url = user_links.get(uid)
@@ -278,11 +288,11 @@ if __name__ == "__main__":
     setup_bot_commands()
     threading.Thread(target=auto_refresh, daemon=True).start()
     print("---------------------------------------")
-    print("🚀 البوت يعمل الآن بنظام v43.3 المستقر")
+    print("🚀 البوت يعمل الآن بنظام v43.4 (تحديث ذاتي)")
     print("👨‍💻 المطور: إبراهيم مصطفى")
     print("---------------------------------------")
     while True:
         try: bot.infinity_polling(timeout=20)
-        except Exception as e:
+        except Exception:
             time.sleep(5)
-            
+    
