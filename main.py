@@ -1,8 +1,8 @@
 # ======================================================
-# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.13)
+# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.14)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 FIX: PYTHON 3.11 STABLE + AI SUBTITLES
+# 🛠 FIX: ARABIC RTL SUBTITLES + FFmpeg POSITIONING
 # 📏 LENGTH: 500+ LINES - NO DELETIONS
 # ======================================================
 
@@ -19,13 +19,14 @@ from datetime import datetime, timedelta
 
 # --- [ 1. محرك التحديث التلقائي الذكي ] ---
 def update_system():
-    """تحديث المكتبات لنسخ متوافقة مع بايثون 3.11"""
+    """تحديث المكتبات لنسخ متوافقة مع بايثون 3.11 ودعم العربية"""
     print("⚙️ جاري فحص وتحديث النظام للنسخة المستقرة...")
     try:
-        # تثبيت النسخة 3.1.0a0 لضمان عمل الترجمة بدون خطأ cgi
+        # إضافة مكتبات معالجة اللغة العربية للقائمة
         subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", "--upgrade", 
-                               "yt-dlp", "pyTelegramBotAPI", "requests", "googletrans==3.1.0a0"])
-        print("✅ تم التحديث بنجاح، النظام مستقر الآن.")
+                               "yt-dlp", "pyTelegramBotAPI", "requests", "googletrans==3.1.0a0", 
+                               "arabic-reshaper", "python-bidi"])
+        print("✅ تم التحديث بنجاح، النظام يدعم العربية الآن.")
     except Exception as e:
         print(f"⚠️ فشل التحديث التلقائي: {e}")
 
@@ -35,6 +36,8 @@ import telebot
 from telebot import types
 import yt_dlp
 from googletrans import Translator
+from arabic_reshaper import reshape
+from bidi.algorithm import get_display
 
 # --- [ 2. الثوابت والإعدادات ] ---
 API_TOKEN = '8168190815:AAG0U-eqjIvAr5HbtTWTGOqQzSRz9Pdx4AY'.strip()
@@ -202,39 +205,51 @@ def download_core(chat_id, url, mode):
     bot.edit_message_text("❌ فشل التحميل السريع، جرب الرابط مرة أخرى.", chat_id, status.message_id)
 
 def download_with_subtitles(chat_id, url):
-    """محرك حفر الترجمة في منتصف الفيديو"""
-    status = bot.send_message(chat_id, "🔍 جاري التحليل وحفر الترجمة (قد يستغرق دقيقة)...")
+    """محرك حفر الترجمة الاحترافي يدعم اللغة العربية ومكان النص بالأسفل"""
+    status = bot.send_message(chat_id, "🔍 جاري التحليل وحفر الترجمة العربية...")
     tag = f"sub_{int(time.time())}"
     video_path = f"{CACHE_DIR}/{tag}.mp4"
+    srt_path = f"{CACHE_DIR}/{tag}.srt"
     output_path = f"{CACHE_DIR}/{tag}_tr.mp4"
 
     try:
+        # 1. تحميل الفيديو
         ydl_opts = {'format': 'best', 'outtmpl': video_path, 'quiet': True}
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
-            title = info.get('title', 'Video Content')
+            title = info.get('title', 'محتوى فيديو')
 
+        # 2. ترجمة ومعالجة النص العربي
         translator = Translator()
-        translated_text = translator.translate(title, dest='ar').text
+        translated = translator.translate(title, dest='ar').text
         
-        # أمر FFmpeg لحفر النص في المنتصف بدقة
+        # معالجة النص ليظهر بشكل صحيح من اليمين لليسار وبحروف متصلة
+        fixed_text = get_display(reshape(translated))
+        
+        # 3. إنشاء ملف ترجمة مؤقت لضمان التحكم بالمكان (الأسفل)
+        with open(srt_path, "w", encoding="utf-8") as srt:
+            srt.write(f"1\n00:00:00,000 --> 00:00:59,000\n{fixed_text}\n")
+
+        # 4. أمر FFmpeg الاحترافي (حفر بالأسفل مع خلفية بسيطة للوضوح)
+        # Alignment=2 تعني أسفل المنتصف
         cmd = [
             'ffmpeg', '-i', video_path,
-            '-vf', f"drawtext=text='{translated_text}':x=(w-text_w)/2:y=(h-text_h)/2:fontsize=30:fontcolor=white:borderw=2:bordercolor=black",
+            '-vf', f"subtitles={srt_path}:force_style='Alignment=2,FontSize=18,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0'",
             '-codec:a', 'copy', output_path
         ]
         subprocess.run(cmd, check=True)
 
         with open(output_path, 'rb') as f:
-            bot.send_video(chat_id, f, caption="✅ تم التحميل وحفر الترجمة بالمنتصف\n👨‍💻 المطور: إبراهيم مصطفى")
+            bot.send_video(chat_id, f, caption="✅ تم التحميل وحفر الترجمة العربية بالأسفل\n👨‍💻 المطور: إبراهيم مصطفى")
         bot.delete_message(chat_id, status.message_id)
         sync_user_data(chat_id, "User", xp_add=50, dl_add=1)
 
     except Exception as e:
-        bot.edit_message_text(f"⚠️ فشل النظام: {str(e)[:50]}", chat_id, status.message_id)
+        bot.edit_message_text(f"⚠️ فشل النظام: {str(e)[:100]}", chat_id, status.message_id)
     finally:
-        if os.path.exists(video_path): os.remove(video_path)
-        if os.path.exists(output_path): os.remove(output_path)
+        # تنظيف الملفات المؤقتة
+        for p in [video_path, srt_path, output_path]:
+            if os.path.exists(p): os.remove(p)
 
 # --- [ 8. لوحة التحكم ونظام التنبيهات ] ---
 
@@ -268,7 +283,7 @@ def handle_broadcast(message):
 def start_cmd(message):
     register_new_user(message.from_user)
     sync_user_data(message.from_user.id, message.from_user.first_name, xp_add=5)
-    bot.send_message(message.chat.id, f"أهلاً بك يا {message.from_user.first_name} في بوت إبراهيم مصطفى 💎\nالنسخة v43.13 المستقرة جاهزة.", 
+    bot.send_message(message.chat.id, f"أهلاً بك يا {message.from_user.first_name} في بوت إبراهيم مصطفى 💎\nالنسخة v43.14 المستقرة (دعم العربية) جاهزة.", 
                      reply_markup=build_main_menu())
 
 @bot.message_handler(commands=['admin'])
@@ -279,14 +294,14 @@ def admin_cmd(message):
 def callback_manager(call):
     uid = call.from_user.id
     if call.data == "btn_back":
-        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.13", 
+        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.14", 
                               call.message.chat.id, call.message.message_id, reply_markup=build_main_menu())
     elif call.data == "btn_profile": show_profile(call)
     elif call.data == "btn_top": show_leaderboard(call)
     elif call.data == "btn_gift": claim_daily_gift(call)
     elif call.data == "btn_dl": initiate_dl(call)
     elif call.data == "btn_dev":
-        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.13\n🇮🇶 البلد: العراق"
+        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.14\n🇮🇶 البلد: العراق"
         bot.edit_message_text(txt, call.message.chat.id, call.message.message_id, reply_markup=build_back_button())
     elif call.data == "run_v":
         url = user_links.get(uid)
@@ -312,7 +327,7 @@ def callback_manager(call):
 if __name__ == "__main__":
     setup_bot_commands()
     threading.Thread(target=auto_refresh, daemon=True).start()
-    print("🚀 البوت يعمل الآن بنظام v43.13 (Stable Mode)")
+    print("🚀 البوت يعمل الآن بنظام v43.14 (Arabic Support)")
     while True:
         try: bot.infinity_polling(timeout=20)
         except Exception: time.sleep(5)
