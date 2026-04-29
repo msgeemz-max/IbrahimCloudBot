@@ -1,8 +1,8 @@
 # ======================================================
-# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.29)
+# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.30)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 FIX: OPENAI AUTHENTICATED + FULL PRO VERSION
+# 🛠 FIX: RAILWAY BYPASS + PURE OPENAI ENGINE
 # 📏 LENGTH: NO DELETIONS - ALL SYSTEMS ACTIVE
 # ======================================================
 
@@ -40,9 +40,16 @@ from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 import speech_recognition as sr
 
-# تعديل استدعاء المكتبة لضمان عملها في Railway بدون خطأ ModuleNotFoundError
-import moviepy.editor as mp
-from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+# تعديل "ذكي" للاستيراد لتجنب خطأ السطر 41 المشهور في سجلات Railway
+try:
+    from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
+except ImportError:
+    # محاولة بديلة في حال كان السيرفر يستخدم إصداراً مختلفاً
+    import moviepy.video.io.VideoFileClip as mpy_v
+    import moviepy.video.VideoClip as mpy_c
+    VideoFileClip = mpy_v.VideoFileClip
+    TextClip = mpy_c.TextClip
+    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
 # --- [ 2. الثوابت والإعدادات ] ---
 API_TOKEN = '8168190815:AAG0U-eqjIvAr5HbtTWTGOqQzSRz9Pdx4AY'.strip()
@@ -217,9 +224,8 @@ def callback_manager(call):
     elif call.data == "btn_profile":
         u = get_db(FILE_RANKS).get(str(uid), {"xp":0, "dl":0, "name":"User", "level":"مبتدئ"})
         bot.edit_message_text(f"👤 حسابك: {u['name']}\n⭐ XP: {u['xp']}", call.message.chat.id, call.message.message_id, reply_markup=build_back_button())
-    # إضافة الأزرار المفقودة لضمان عدم حدوث أخطاء واجهة
     elif call.data == "btn_dev":
-        bot.send_message(call.message.chat.id, f"👨‍💻 المطور الأساسي: {MY_USER}\nإصدار البوت: V43.29")
+        bot.send_message(call.message.chat.id, f"👨‍💻 المطور الأساسي: {MY_USER}\nإصدار البوت: V43.30")
 
 def process_url(message):
     if "http" in message.text:
@@ -231,7 +237,8 @@ def process_url(message):
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     register_new_user(message.from_user)
-    bot.send_message(message.chat.id, f"أهلاً إبراهيم! نسخة v43.29 (OpenAI Pure Engine) جاهزة بالكامل.", reply_markup=build_main_menu())
+    bot.send_message(message.chat.id, f"أهلاً إبراهيم! نسخة v43.30 (Railway Stable) جاهزة بالكامل.", reply_markup=build_main_menu())
 
 if __name__ == "__main__":
     bot.infinity_polling()
+                              
