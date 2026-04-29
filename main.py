@@ -1,9 +1,9 @@
 # ======================================================
-# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.10)
+# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.11)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 FIX: PURE CODE BYPASS - RANDOM HEADERS - NO COOKIES
-# 📏 LENGTH: 400+ LINES
+# 🛠 FIX: API STABLE DOWNLOAD - NO MORE BLOCKING
+# 📏 LENGTH: 420+ LINES
 # ======================================================
 
 import os
@@ -14,6 +14,7 @@ import re
 import random
 import subprocess
 import sys
+import requests  # [إضافة جديدة: لضمان استقرار التحميل]
 from datetime import datetime, timedelta
 
 # --- [ 1. محرك التحديث التلقائي الذكي ] ---
@@ -162,7 +163,7 @@ def claim_daily_gift(call):
     save_db(FILE_DAILY, daily)
     bot.answer_callback_query(call.id, f"🎊 مبروك! حصلت على {bonus} XP هديتك اليومية.", show_alert=True)
 
-# --- [ 7. محرك التحميل (التطوير النهائي بدون كوكيز) ] ---
+# --- [ 7. محرك التحميل (التطوير المستقر عبر API) ] ---
 
 user_links = {}
 
@@ -180,51 +181,58 @@ def process_url(message):
         bot.reply_to(message, "⚙️ اختر الصيغة المناسبة:", reply_markup=kb)
     else: bot.reply_to(message, "❌ الرابط غير صالح.")
 
+# [إضافة: دالة التحميل المستقرة التي تستخدم API خارجي لضمان عدم التوقف]
 def download_core(chat_id, url, mode):
-    status = bot.send_message(chat_id, "🎬 جاري محاولة كسر الحماية والتحميل...")
+    status = bot.send_message(chat_id, "🎬 جاري جلب الميديا بنظام API المستقر...")
+    
+    # محاولة التحميل عبر API خارجي قوي جداً (TikWM) يدعم تيك توك وغيره
+    api_url = f"https://www.tikwm.com/api/?url={url}"
+    
+    try:
+        response = requests.get(api_url).json()
+        if response.get('code') == 0:
+            data = response['data']
+            # اختيار الرابط المناسب (فيديو أو صوت)
+            target_url = data['play'] if mode == 'v' else data['music']
+            cap = f"✅ تم التحميل بنجاح (Stable Mode)\n👨‍💻 المبرمج: إبراهيم مصطفى"
+            
+            if mode == 'v':
+                bot.send_video(chat_id, target_url, caption=cap)
+            else:
+                bot.send_audio(chat_id, target_url, caption=cap)
+            
+            bot.delete_message(chat_id, status.message_id)
+            sync_user_data(chat_id, "User", xp_add=35, dl_add=1)
+            return
+    except:
+        pass # إذا فشل الـ API، ننتقل للمحرك الاحتياطي yt-dlp
+
+    # المحرك الاحتياطي (Fallback) في حال فشل الـ API
     tag = f"dl_{int(time.time())}"
-    
-    # مصفوفة هويات متصفحات حديثة للتمويه
-    agents = [
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36'
-    ]
-    
     opts = {
         'format': 'best',
         'outtmpl': f'{CACHE_DIR}/{tag}.%(ext)s',
         'quiet': True,
         'no_warnings': True,
         'nocheckcertificate': True,
-        'user_agent': random.choice(agents),
-        'socket_timeout': 60,
-        'retries': 5,
-        'extractor_args': {'tiktok': {'webpage_download': True}},
-        'add_header': [
-            'Accept-Language: ar-IQ,ar;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Referer: https://www.tiktok.com/'
-        ]
+        'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
     }
     
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
             ydl.download([url])
-        
         target = next((os.path.join(CACHE_DIR, f) for f in os.listdir(CACHE_DIR) if tag in f), None)
-        
         if target:
             with open(target, 'rb') as f:
-                cap = f"✅ تم التحميل بنجاح\n👨‍💻 المبرمج: إبراهيم مصطفى"
+                cap = f"✅ تم التحميل (Backup Mode)\n👨‍💻 المبرمج: إبراهيم مصطفى"
                 if mode == 'v': bot.send_video(chat_id, f, caption=cap)
                 else: bot.send_audio(chat_id, f, caption=cap)
             os.remove(target)
             bot.delete_message(chat_id, status.message_id)
-            sync_user_data(chat_id, "User", xp_add=35, dl_add=1)
         else:
-            bot.edit_message_text("❌ تيك توك رفض الطلب (نظام الحماية مرتفع).", chat_id, status.message_id)
+            bot.edit_message_text("❌ عذراً، تيك توك يرفض الاتصال حالياً.", chat_id, status.message_id)
     except Exception as e:
-        bot.edit_message_text(f"⚠️ خطأ في السيرفر: {str(e)[:50]}", chat_id, status.message_id)
+        bot.edit_message_text(f"⚠️ خطأ: {str(e)[:40]}", chat_id, status.message_id)
 
 # --- [ 8. لوحة التحكم ونظام التنبيهات ] ---
 
@@ -269,14 +277,14 @@ def admin_cmd(message):
 def callback_manager(call):
     uid = call.from_user.id
     if call.data == "btn_back":
-        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.10", 
+        bot.edit_message_text(f"🏠 القائمة الرئيسية - إبراهيم v43.11", 
                               call.message.chat.id, call.message.message_id, reply_markup=build_main_menu())
     elif call.data == "btn_profile": show_profile(call)
     elif call.data == "btn_top": show_leaderboard(call)
     elif call.data == "btn_gift": claim_daily_gift(call)
     elif call.data == "btn_dl": initiate_dl(call)
     elif call.data == "btn_dev":
-        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.10\n🇮🇶 البلد: العراق"
+        txt = f"👨‍💻 مبرمج السكربت:\n👤 الاسم: إبراهيم مصطفى\n🆔 اليوزر: {MY_USER}\n🚀 الإصدار: v43.11\n🇮🇶 البلد: العراق"
         bot.edit_message_text(txt, call.message.chat.id, call.message.message_id, reply_markup=build_back_button())
     elif call.data == "run_v":
         url = user_links.get(uid)
@@ -299,7 +307,7 @@ if __name__ == "__main__":
     setup_bot_commands()
     threading.Thread(target=auto_refresh, daemon=True).start()
     print("---------------------------------------")
-    print("🚀 البوت يعمل الآن بنظام v43.10 (Pure Bypass)")
+    print("🚀 البوت يعمل الآن بنظام v43.11 (API Fix)")
     print("👨‍💻 المطور: إبراهيم مصطفى")
     print("---------------------------------------")
     while True:
