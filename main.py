@@ -1,9 +1,9 @@
 # ======================================================
-# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.23)
+# 👑 PROJECT: THE ULTIMATE MODULAR BOT (V43.28)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 FIX: PURE AI VIDEO PROCESSING (NO FFMPEG SUBPROCESS)
-# 📏 LENGTH: FULL PRO VERSION - NO DELETIONS
+# 🛠 FIX: OPENAI AUTHENTICATED + FULL PRO VERSION
+# 📏 LENGTH: NO DELETIONS - ALL SYSTEMS ACTIVE
 # ======================================================
 
 import os
@@ -19,14 +19,13 @@ from datetime import datetime, timedelta
 
 # --- [ 1. محرك التحديث التلقائي الذكي ] ---
 def update_system():
-    """تحديث المكتبات ودعم محرك الصوت والنص الذكي"""
-    print("⚙️ جاري تجهيز محرك الذكاء الاصطناعي المستقل...")
+    """تحديث المكتبات ودعم محرك الصوت والنص والذكاء الاصطناعي"""
+    print("⚙️ جاري تجهيز محركات OpenAI و MoviePy الصافية...")
     try:
-        # إضافة ImageMagick (اختياري لبعض الأنظمة) والمكتبات الأساسية
         subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-cache-dir", "--upgrade", 
-                               "yt-dlp", "pyTelegramBotAPI", "requests", "googletrans==3.1.0a0", 
+                               "yt-dlp", "pyTelegramBotAPI", "requests", "openai==0.28", 
                                "arabic-reshaper", "python-bidi", "moviepy", "SpeechRecognition", "pydub"])
-        print("✅ تم تفعيل المحرك البرمجي بنجاح.")
+        print("✅ تم تفعيل محرك OpenAI والمكتبات البرمجية بنجاح.")
     except Exception as e:
         print(f"⚠️ فشل التحديث: {e}")
 
@@ -35,7 +34,7 @@ update_system()
 import telebot
 from telebot import types
 import yt_dlp
-from googletrans import Translator
+import openai  # إضافة محرك OpenAI
 from arabic_reshaper import reshape
 from bidi.algorithm import get_display
 import speech_recognition as sr
@@ -43,6 +42,10 @@ from moviepy.editor import VideoFileClip, TextClip, CompositeVideoClip
 
 # --- [ 2. الثوابت والإعدادات ] ---
 API_TOKEN = '8168190815:AAG0U-eqjIvAr5HbtTWTGOqQzSRz9Pdx4AY'.strip()
+# المفتاح الخاص بك تم دمجه هنا
+OPENAI_KEY = 'Sk-proj-AQRmkzRr8TtLaxi6D0goz4O1JLRWkVaQ1sVhDe-g47sA16B4gmvUm8eI9wnckxlOtq92te3F6FT3BlbkFJaowD_tA8hBNMttKS3vOANAByH-XSqRc5jjRHXBDmC7RqE48hzKAYMBmYjObrN-Powt4PbcY9cA' 
+openai.api_key = OPENAI_KEY
+
 bot = telebot.TeleBot(API_TOKEN)
 ADMIN_ID = 8301016131 
 MY_USER = "@x_u3s1"
@@ -100,14 +103,26 @@ def build_back_button():
     kb = types.InlineKeyboardMarkup(); kb.add(types.InlineKeyboardButton("🔙 العودة للقائمة", callback_data="btn_back"))
     return kb
 
-# --- [ 7. محرك الترجمة البرمجي AI (بدون FFMPEG CLI) ] ---
+# --- [ 7. محرك الترجمة البرمجي OpenAI + MoviePy الصافي ] ---
 
 def get_reshaped_text(text):
     return get_display(reshape(text))
 
+def ai_translate_openai(text):
+    """محرك OpenAI لترجمة النصوص باحترافية"""
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "system", "content": "Translate the following text to professional Arabic."},
+                      {"role": "user", "content": text}]
+        )
+        return response.choices[0].message.content
+    except:
+        return text 
+
 def download_with_subtitles(chat_id, url):
-    status = bot.send_message(chat_id, "🔥 جاري بدء المعالجة بالذكاء الاصطناعي...")
-    tag = f"ai_{int(time.time())}"
+    status = bot.send_message(chat_id, "🔥 جاري بدء المعالجة بنظام OpenAI...")
+    tag = f"ai_pro_{int(time.time())}"
     video_path = f"{CACHE_DIR}/{tag}.mp4"
     audio_path = f"{CACHE_DIR}/{tag}.wav"
     output_path = f"{CACHE_DIR}/{tag}_final.mp4"
@@ -124,33 +139,30 @@ def download_with_subtitles(chat_id, url):
         video_clip.audio.write_audiofile(audio_path, logger=None)
 
         recognizer = sr.Recognizer()
-        translator = Translator()
-        
         with sr.AudioFile(audio_path) as source:
             audio_data = recognizer.record(source)
             try:
                 original_text = recognizer.recognize_google(audio_data)
-                bot.edit_message_text("🌍 جاري الترجمة الاحترافية...", chat_id, status.message_id)
-                translated = translator.translate(original_text, dest='ar').text
+                bot.edit_message_text("🌍 OpenAI جاري الترجمة بواسطة...", chat_id, status.message_id)
+                translated = ai_translate_openai(original_text)
             except:
-                translated = translator.translate(info.get('title', 'فيديو'), dest='ar').text
+                translated = ai_translate_openai(info.get('title', 'فيديو'))
 
         fixed_text = get_reshaped_text(translated)
         
-        # 3. الحفر البرمجي (MoviePy Composite)
-        # هنا يتم الحفر داخل الكود بدون استدعاء نظام خارجي
-        bot.edit_message_text("🎬 جاري دمج الترجمة والإنتاج النهائي...", chat_id, status.message_id)
+        # 3. الحفر البرمجي الصافي (Composite)
+        bot.edit_message_text("🎬 جاري الإنتاج النهائي (Pure AI)...", chat_id, status.message_id)
         
-        txt_clip = TextClip(fixed_text, fontsize=30, color='white', font='Arial', 
-                            bg_color='black', method='caption', size=(video_clip.w*0.8, None))
-        txt_clip = txt_clip.set_pos(('center', 'bottom')).set_duration(video_clip.duration).margin(bottom=20, opacity=0)
+        txt_clip = TextClip(fixed_text, fontsize=35, color='white', font='Arial', 
+                            bg_color='rgba(0,0,0,0.5)', method='caption', size=(video_clip.w*0.8, None))
+        txt_clip = txt_clip.set_pos(('center', 'bottom')).set_duration(video_clip.duration).margin(bottom=30, opacity=0)
         
         result = CompositeVideoClip([video_clip, txt_clip])
         result.write_videofile(output_path, codec="libx264", audio_codec="aac", logger=None)
 
         # 4. الرفع
         with open(output_path, 'rb') as f:
-            bot.send_video(chat_id, f, caption="✅ تم الإنتاج بواسطة محرك إبراهيم البرمجي")
+            bot.send_video(chat_id, f, caption="✅ تم الإنتاج بواسطة OpenAI و MoviePy\n👨‍💻 إبراهيم مصطفى")
         
         bot.delete_message(chat_id, status.message_id)
         sync_user_data(chat_id, "User", xp_add=100, dl_add=1)
@@ -158,9 +170,7 @@ def download_with_subtitles(chat_id, url):
     except Exception as e:
         bot.edit_message_text(f"⚠️ فشل المحرك البرمجي: {str(e)[:50]}", chat_id, status.message_id)
     finally:
-        # إغلاق الكليبات لتحرير الذاكرة
-        try:
-            video_clip.close(); result.close()
+        try: video_clip.close(); result.close()
         except: pass
         for p in [video_path, audio_path, output_path]:
             if os.path.exists(p): os.remove(p)
@@ -204,14 +214,14 @@ def process_url(message):
     if "http" in message.text:
         user_links[message.from_user.id] = message.text
         kb = types.InlineKeyboardMarkup()
-        kb.add(types.InlineKeyboardButton("🌍 ترجمة AI (بدون نظام خارجي)", callback_data="run_sub"))
+        kb.add(types.InlineKeyboardButton("🌍 ترجمة OpenAI الذكية", callback_data="run_sub"))
         bot.reply_to(message, "⚙️ اختر نوع المعالجة:", reply_markup=kb)
 
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     register_new_user(message.from_user)
-    bot.send_message(message.chat.id, f"أهلاً إبراهيم! نسخة v43.23 (محرك بايثون الصافي) تعمل الآن.", reply_markup=build_main_menu())
+    bot.send_message(message.chat.id, f"أهلاً إبراهيم! نسخة v43.28 (OpenAI Pure Engine) جاهزة.", reply_markup=build_main_menu())
 
 if __name__ == "__main__":
     bot.infinity_polling()
-            
+    
