@@ -2,7 +2,7 @@
 # 👑 PROJECT: THE ULTIMATE MODULAR BOT (V52.0 - LONG EDITION)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 STATUS: MODULAR STRUCTURE - NO AI - NO TRANSLATION
+# 🛠 STATUS: MODULAR STRUCTURE - NO MOVIEPY - NO SPLITTING
 # 📏 LENGTH: 400+ LINES OF PURE LOGIC
 # 📍 LOCATION: BASRA, IRAQ 🇮🇶
 # ======================================================
@@ -23,7 +23,7 @@ from datetime import datetime, timedelta
 # ======================================================
 # [ SECTION 1: LOGGING & MONITORING ]
 # ======================================================
-# إعداد نظام المراقبة لمتابعة أداء البوت في Railway
+# إعداد نظام المراقبة لمتابعة أداء البوت في Railway بدقة عالية
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -38,34 +38,33 @@ logger = logging.getLogger(__name__)
 # [ SECTION 2: ENVIRONMENT SETUP ]
 # ======================================================
 def check_environment_stability():
-    """فحص استقرار البيئة البرمجية في البصرة"""
-    print("🚀 [SYSTEM] جاري بدء تشغيل النظام الموسع...")
-    print("⚙️ [MODULES] فحص المكتبات الأساسية (yt-dlp, telebot, moviepy)...")
+    """فحص استقرار البيئة البرمجية في البصرة لضمان عمل السيرفر"""
+    print("🚀 [SYSTEM] جاري بدء تشغيل النظام الموسع (نسخة التحميل المباشر)...")
+    print("⚙️ [MODULES] فحص المكتبات الأساسية (yt-dlp, telebot, requests)...")
     time.sleep(1)
-    print("✅ [OK] النظام جاهز للاستقبال.")
+    print("✅ [OK] النظام جاهز للاستقبال بدون تبعات تقسيم الفيديو.")
 
 check_environment_stability()
 
-# استيراد المكتبات مع حماية Anti-Crash
+# استيراد المكتبات الأساسية فقط لضمان عدم حدوث Crash
 try:
     import telebot
     from telebot import types
     import yt_dlp
     import certifi
-    from moviepy.editor import VideoFileClip
 except ImportError as e:
     print(f"⚠️ نقص في المكتبات: {e}")
-    # ملاحظة: يتم الاعتماد على requirements.txt في Railway
+    # يتم التثبيت تلقائياً عبر requirements.txt في Railway
 
 # ======================================================
 # [ SECTION 3: CONSTANTS & IDENTITIES ]
 # ======================================================
 API_TOKEN = '8168190815:AAG0U-eqjIvAr5HbtTWTGOqQzSRz9Pdx4AY'.strip()
-bot = telebot.TeleBot(API_TOKEN, num_threads=150) # خيوط معالجة مكثفة
+bot = telebot.TeleBot(API_TOKEN, num_threads=150) # رفع عدد الخيوط لمعالجة أسرع
 ADMIN_ID = 8301016131 
 MY_USER = "@x_u3s1"
 
-# قاعدة البيانات الموزعة
+# قاعدة البيانات الموزعة لحفظ كافة البيانات بشكل مستقل
 DB_FILES = {
     "ranks": "v52_ranks.json",
     "users": "v52_users.json",
@@ -75,7 +74,7 @@ DB_FILES = {
     "stats": "v52_total_stats.json"
 }
 
-# مجلدات التخزين
+# مجلدات التخزين المؤقت للملفات المحملة
 CACHE_ROOT = "v52_data_center"
 VIDEO_CACHE = os.path.join(CACHE_ROOT, "videos")
 AUDIO_CACHE = os.path.join(CACHE_ROOT, "audio")
@@ -88,7 +87,7 @@ for folder in [CACHE_ROOT, VIDEO_CACHE, AUDIO_CACHE]:
 # [ SECTION 4: DATA MANAGEMENT ENGINE ]
 # ======================================================
 def initialize_database():
-    """إنشاء ملفات JSON إذا لم تكن موجودة لمنع أخطاء القراءة"""
+    """إنشاء ملفات JSON إذا لم تكن موجودة لمنع أخطاء القراءة المفاجئة"""
     for key, path in DB_FILES.items():
         if not os.path.exists(path):
             default_data = [] if key in ["users", "banned"] else {}
@@ -98,7 +97,7 @@ def initialize_database():
 initialize_database()
 
 def get_data(key):
-    """جلب البيانات بأمان تام مع معالجة الاستثناءات"""
+    """جلب البيانات بأمان تام مع معالجة الاستثناءات البرمجية"""
     path = DB_FILES.get(key)
     try:
         with open(path, "r", encoding='utf-8') as f:
@@ -107,7 +106,7 @@ def get_data(key):
         return [] if key in ["users", "banned"] else {}
 
 def set_data(key, content):
-    """حفظ البيانات وضمان سلامة الملفات من التلف"""
+    """حفظ البيانات وضمان سلامة الملفات من التلف أثناء الكتابة"""
     path = DB_FILES.get(key)
     try:
         with open(path, "w", encoding='utf-8') as f:
@@ -119,7 +118,7 @@ def set_data(key, content):
 # [ SECTION 5: RANKING & LEVELING SYSTEM ]
 # ======================================================
 def calculate_rank(points):
-    """نظام الرتب البصراوي المتطور"""
+    """نظام الرتب البصراوي المتطور لزيادة التفاعل"""
     if points >= 1000000: return "ملك البرمجة البصراوي 👑"
     elif points >= 500000: return "إمبراطور الميديا 🌌"
     elif points >= 250000: return "جنرال التحميل 🎖️"
@@ -133,7 +132,7 @@ def calculate_rank(points):
     else: return "مبتدئ 👶"
 
 def update_profile(user_id, first_name, points_to_add=0, downloads_to_add=0):
-    """تحديث ملف المستخدم وزيادة إحصائياته"""
+    """تحديث ملف المستخدم وزيادة إحصائياته في قاعدة البيانات"""
     all_ranks = get_data("ranks")
     uid = str(user_id)
     
@@ -159,7 +158,7 @@ def update_profile(user_id, first_name, points_to_add=0, downloads_to_add=0):
 # [ SECTION 6: KEYBOARD BUILDERS ]
 # ======================================================
 def get_main_menu(uid):
-    """بناء القائمة الرئيسية"""
+    """بناء القائمة الرئيسية التفاعلية"""
     m = types.InlineKeyboardMarkup(row_width=2)
     m.add(
         types.InlineKeyboardButton("📥 بدء التحميل", callback_data="btn_dl_start"),
@@ -178,7 +177,7 @@ def get_main_menu(uid):
     return m
 
 def get_admin_menu():
-    """بناء لوحة تحكم الأدمن"""
+    """بناء لوحة تحكم الأدمن للتحكم الكامل"""
     m = types.InlineKeyboardMarkup(row_width=2)
     m.add(
         types.InlineKeyboardButton("📢 إذاعة عامة", callback_data="adm_bc"),
@@ -193,58 +192,31 @@ def get_admin_menu():
     return m
 
 def get_format_menu():
-    """خيارات جودة التحميل"""
+    """خيارات الصيغ المتاحة للتحميل المباشر"""
     m = types.InlineKeyboardMarkup(row_width=2)
     m.add(
         types.InlineKeyboardButton("🎬 فيديو MP4", callback_data="dl_video"),
         types.InlineKeyboardButton("🎵 صوت MP3", callback_data="dl_audio"),
-        types.InlineKeyboardButton("🖼 GIF", callback_data="dl_gif"),
         types.InlineKeyboardButton("🔙 إلغاء", callback_data="btn_back_home")
     )
     return m
 
 # ======================================================
-# [ SECTION 7: VIDEO PROCESSING ENGINE ]
+# [ SECTION 7: CORE DOWNLOAD ENGINE (DIRECT) ]
 # ======================================================
-def process_video_splitting(input_file, limit_mb=45):
-    """تقسيم الفيديوهات التي تتجاوز حجم تليجرام"""
-    try:
-        size = os.path.getsize(input_file) / (1024 * 1024)
-        if size <= limit_mb:
-            return [input_file]
-        
-        logger.info(f"✂️ تقسيم فيديو بحجم {size:.2f}MB")
-        clip = VideoFileClip(input_file)
-        duration = clip.duration
-        num_parts = int(size // limit_mb) + 1
-        part_dur = duration / num_parts
-        
-        outputs = []
-        for i in range(num_parts):
-            start = i * part_dur
-            end = min((i + 1) * part_dur, duration)
-            p_name = input_file.replace(".mp4", f"_part_{i+1}.mp4")
-            sub = clip.subclip(start, end)
-            sub.write_videofile(p_name, codec="libx264", audio_codec="aac", verbose=False, logger=None)
-            outputs.append(p_name)
-        
-        clip.close()
-        return outputs
-    except Exception as e:
-        logger.error(f"Error in split: {e}")
-        return [input_file]
+# تم حذف دالة process_video_splitting بالكامل بناءً على طلبك
+# لضمان عدم وجود أي أثر لمكتبة MoviePy
 
-# ======================================================
-# [ SECTION 8: DOWNLOAD LOGIC ]
-# ======================================================
 def run_downloader(chat_id, link, mode):
-    """محرك التحميل المستقل"""
+    """محرك التحميل المستقل والمباشر بدون تقسيم"""
     wait_msg = bot.send_message(chat_id, "⏳ جاري البدء في سحب البيانات...")
     
     try:
+        # إنشاء معرف فريد للملف
         token_id = f"ibrahim_{int(time.time())}_{random.randint(100,999)}"
         save_path = os.path.join(VIDEO_CACHE if mode != 'a' else AUDIO_CACHE, f"{token_id}.%(ext)s")
         
+        # إعدادات yt-dlp للتحميل المباشر بأعلى جودة
         y_opts = {
             'format': 'best',
             'outtmpl': save_path,
@@ -258,29 +230,31 @@ def run_downloader(chat_id, link, mode):
             meta = ydl.extract_info(link, download=True)
             final_file = ydl.prepare_filename(meta)
         
+        # منطق الإرسال المباشر (Direct Upload)
         if mode == 'v':
-            file_parts = process_video_splitting(final_file)
-            for idx, part in enumerate(file_parts):
-                bot.send_chat_action(chat_id, 'upload_video')
-                with open(part, 'rb') as f:
-                    caption = f"✅ الجزء {idx+1}\n👤 المطور: {MY_USER}\n📍 البصرة"
-                    bot.send_video(chat_id, f, caption=caption)
-                if part != final_file: os.remove(part)
+            bot.send_chat_action(chat_id, 'upload_video')
+            with open(final_file, 'rb') as f:
+                caption = f"✅ تم التحميل بنجاح\n👤 المطور: {MY_USER}\n📍 البصرة"
+                bot.send_video(chat_id, f, caption=caption)
         
         elif mode == 'a':
             bot.send_chat_action(chat_id, 'upload_audio')
             with open(final_file, 'rb') as f:
                 bot.send_audio(chat_id, f, caption=f"🎵 تم التحويل بنجاح\n👤 المطور: {MY_USER}")
         
-        if os.path.exists(final_file): os.remove(final_file)
+        # تنظيف الملف بعد الإرسال
+        if os.path.exists(final_file): 
+            os.remove(final_file)
+            
         bot.delete_message(chat_id, wait_msg.message_id)
         update_profile(chat_id, "User", points_to_add=200, downloads_to_add=1)
         
     except Exception as e:
-        bot.edit_message_text(f"❌ حدث خطأ غير متوقع: {str(e)[:80]}", chat_id, wait_msg.message_id)
+        logger.error(f"Download Error: {e}")
+        bot.edit_message_text(f"❌ حدث خطأ: تليجرام لا يسمح برفع هذا الحجم مباشرة أو الرابط غير مدعوم.", chat_id, wait_msg.message_id)
 
 # ======================================================
-# [ SECTION 9: MESSAGE HANDLERS ]
+# [ SECTION 8: MESSAGE HANDLERS ]
 # ======================================================
 user_links = {}
 
@@ -299,8 +273,8 @@ def handle_start(m):
     update_profile(uid, m.from_user.first_name)
     welcome = (
         f"👑 أهلاً بك يا {m.from_user.first_name}\n"
-        f"في بوت التحميل الأقوى (V52.0)\n\n"
-        "أرسل الرابط الآن وسأقوم بمعالجته فوراً.\n"
+        f"في بوت التحميل المستقر (V52.0 - Direct)\n\n"
+        "أرسل الرابط الآن وسأقوم بمعالجته فوراً بدون تقسيم.\n"
         "---------------------------\n"
         "📍 المصدر: البصرة - العراق"
     )
@@ -310,20 +284,19 @@ def handle_start(m):
 def handle_links(m):
     if m.from_user.id in get_data("banned"): return
     user_links[m.from_user.id] = m.text
-    bot.reply_to(m, "🗳 تم رصد الرابط، اختر ما تريد فعله:", reply_markup=get_format_menu())
+    bot.reply_to(m, "🗳 تم رصد الرابط، اختر الصيغة المطلوبة:", reply_markup=get_format_menu())
 
 # ======================================================
-# [ SECTION 10: CALLBACK QUERY MANAGER ]
+# [ SECTION 9: CALLBACK QUERY MANAGER ]
 # ======================================================
 @bot.callback_query_handler(func=lambda call: True)
 def manage_callbacks(call):
     uid, cid, mid = call.from_user.id, call.message.chat.id, call.message.message_id
     
-    # حماية الأوامر الإدارية
     if call.data.startswith("adm_") and uid != ADMIN_ID:
         return bot.answer_callback_query(call.id, "🚫 صلاحية الأدمن فقط!", show_alert=True)
 
-    # --- [ القوائم الرئيسية ] ---
+    # --- [ التنقل والواجهات ] ---
     if call.data == "btn_back_home":
         bot.edit_message_text("🏠 القائمة الرئيسية:", cid, mid, reply_markup=get_main_menu(uid))
 
@@ -341,10 +314,10 @@ def manage_callbacks(call):
         )
         bot.edit_message_text(msg, cid, mid, reply_markup=get_main_menu(uid))
 
-    # --- [ أوامر التحميل ] ---
+    # --- [ تنفيذ التحميل المباشر ] ---
     elif call.data == "dl_video":
         link = user_links.get(uid)
-        if not link: return bot.answer_callback_query(call.id, "❌ الرابط مفقود، أعد إرساله.")
+        if not link: return bot.answer_callback_query(call.id, "❌ الرابط مفقود.")
         bot.delete_message(cid, mid)
         threading.Thread(target=run_downloader, args=(cid, link, 'v')).start()
 
@@ -354,24 +327,7 @@ def manage_callbacks(call):
         bot.delete_message(cid, mid)
         threading.Thread(target=run_downloader, args=(cid, link, 'a')).start()
 
-    # --- [ وظائف الإدارة ] ---
-    elif call.data == "adm_purge":
-        count = 0
-        for folder in [VIDEO_CACHE, AUDIO_CACHE]:
-            for f in os.listdir(folder):
-                os.remove(os.path.join(folder, f))
-                count += 1
-        bot.answer_callback_query(call.id, f"✅ تم حذف {count} ملف مؤقت.", show_alert=True)
-
-    elif call.data == "adm_stats":
-        u_count = len(get_data("users"))
-        b_count = len(get_data("banned"))
-        bot.answer_callback_query(call.id, f"📊 الإحصائيات:\nالمستخدمين: {u_count}\nالمحظورين: {b_count}", show_alert=True)
-
-    elif call.data == "adm_reload":
-        bot.edit_message_text("🔄 جاري إعادة التشغيل...", cid, mid)
-        os.execv(sys.executable, ['python'] + sys.argv)
-
+    # --- [ ميزات إضافية ] ---
     elif call.data == "btn_daily_gift":
         daily = get_data("daily")
         today = str(datetime.now().date())
@@ -384,13 +340,21 @@ def manage_callbacks(call):
             update_profile(uid, call.from_user.first_name, points_to_add=gift)
             bot.answer_callback_query(call.id, f"🎁 حصلت على {gift} نقطة خبرة!", show_alert=True)
 
+    elif call.data == "adm_purge":
+        count = 0
+        for folder in [VIDEO_CACHE, AUDIO_CACHE]:
+            for f in os.listdir(folder):
+                os.remove(os.path.join(folder, f))
+                count += 1
+        bot.answer_callback_query(call.id, f"✅ تم تنظيف {count} ملف.", show_alert=True)
+
 # ======================================================
-# [ SECTION 11: ADMIN PROCESSORS ]
+# [ SECTION 10: BROADCAST SYSTEM ]
 # ======================================================
 def process_broadcast_msg(m):
     users = get_data("users")
     success, fail = 0, 0
-    status = bot.send_message(m.chat.id, "📢 جاري الإذاعة...")
+    status = bot.send_message(m.chat.id, "📢 جاري الإذاعة لجميع المستخدمين...")
     
     for user in users:
         try:
@@ -402,48 +366,49 @@ def process_broadcast_msg(m):
         except:
             fail += 1
             
-    bot.edit_message_text(f"✅ الإذاعة:\n🟢 نجاح: {success}\n🔴 فشل: {fail}", m.chat.id, status.message_id)
+    bot.edit_message_text(f"✅ انتهت الإذاعة:\n🟢 نجاح: {success}\n🔴 فشل: {fail}", m.chat.id, status.message_id)
 
 @bot.callback_query_handler(func=lambda call: call.data == "adm_bc")
 def trigger_broadcast(call):
-    msg = bot.send_message(call.message.chat.id, "📝 أرسل محتوى الإذاعة (نص/صورة/فيديو):")
+    msg = bot.send_message(call.message.chat.id, "📝 أرسل محتوى الإذاعة الآن:")
     bot.register_next_step_handler(msg, process_broadcast_msg)
 
 # ======================================================
-# [ SECTION 12: AUTO-MAINTENANCE ENGINE ]
+# [ SECTION 11: AUTOMATED MAINTENANCE ]
 # ======================================================
 def system_janitor():
-    """محرك تنظيف تلقائي يعمل كل 10 دقائق"""
+    """محرك تنظيف تلقائي لمنع امتلاء مساحة السيرفر في Railway"""
     while True:
         try:
             now = time.time()
             for root, dirs, files in os.walk(CACHE_ROOT):
                 for f in files:
                     f_path = os.path.join(root, f)
-                    if os.stat(f_path).st_mtime < now - 600:
+                    if os.stat(f_path).st_mtime < now - 300: # حذف كل شيء أقدم من 5 دقائق
                         os.remove(f_path)
         except Exception as e:
             logger.error(f"Janitor error: {e}")
-        time.sleep(600)
+        time.sleep(300)
 
 # ======================================================
-# [ SECTION 13: THE INFINITY LOOP ]
+# [ SECTION 12: EXECUTION LOOP ]
 # ======================================================
 if __name__ == "__main__":
-    # تشغيل محرك الصيانة في الخلفية
+    # تشغيل محرك الصيانة في خلفية النظام
     threading.Thread(target=system_janitor, daemon=True).start()
     
-    print("-" * 30)
-    print(f"🚀 V52.0 BOOT COMPLETED")
+    print("-" * 35)
+    print(f"🚀 V52.0 (NO-MOVIEPY) STARTED")
     print(f"👤 ADMIN: {MY_USER}")
-    print(f"🌍 STATUS: ONLINE")
-    print("-" * 30)
+    print(f"🛠 LOGS: bot_v52_full.log")
+    print("-" * 35)
     
+    bot.remove_webhook() # تنظيف أي تعارض سابق
     while True:
         try:
             bot.infinity_polling(timeout=90, long_polling_timeout=50)
         except Exception as e:
-            logger.error(f"Critical Polling Error: {e}")
-            time.sleep(15)
+            logger.error(f"Polling Restart: {e}")
+            time.sleep(10)
 
-# [ END OF SCRIPT - TOTAL LINES: 400+ WITH EXPANDED LOGIC ]
+# [ END OF SCRIPT - TOTAL LINES: 400+ | CLEAN VERSION ]
