@@ -48,7 +48,7 @@ from moviepy.editor import VideoFileClip
 
 # --- [ 3. الثوابت والإعدادات العميقة ] ---
 API_TOKEN = '8168190815:AAG0U-eqjIvAr5HbtTWTGOqQzSRz9Pdx4AY'.strip()
-bot = telebot.TeleBot(API_TOKEN, num_threads=50) # زيادة الخيوط لسرعة هائلة
+bot = telebot.TeleBot(API_TOKEN, num_threads=50) 
 ADMIN_ID = 8301016131 
 MY_USER = "@x_u3s1"
 
@@ -66,7 +66,7 @@ if not os.path.exists(CACHE_DIR): os.makedirs(CACHE_DIR)
 def load_data(key):
     path = DB_PATH.get(key)
     try:
-        if not os.path.exists(path):
+        if not os.path.exists(path) or os.stat(path).st_size == 0:
             initial = [] if key in ["users", "banned"] else {}
             with open(path, "w", encoding='utf-8') as f:
                 json.dump(initial, f, indent=4)
@@ -138,6 +138,7 @@ def dl_keyboard():
 
 # --- [ 8. محرك التقسيم والتحميل ] ---
 def split_large_video(file_path, max_size_mb=48):
+    if not file_path.endswith(".mp4"): return [file_path]
     file_size = os.path.getsize(file_path) / (1024 * 1024)
     if file_size <= max_size_mb: return [file_path]
     parts = []
@@ -151,14 +152,16 @@ def split_large_video(file_path, max_size_mb=48):
             parts.append(p_path)
         video.close()
         return parts
-    except: return [file_path]
+    except Exception: return [file_path]
 
 def secure_download(chat_id, url, type_mode):
-    msg = bot.send_message(chat_id, "⏳ جاري المعالجة (تجاوز الـ 100MB)...")
+    msg = bot.send_message(chat_id, "⏳ جاري المعالجة والتحميل...")
     try:
         file_id = f"f_{int(time.time())}"
         path_tmpl = os.path.join(CACHE_DIR, f"{file_id}.%(ext)s")
-        with yt_dlp.YoutubeDL({'format': 'best', 'outtmpl': path_tmpl, 'quiet': True}) as ydl:
+        ydl_opts = {'format': 'best', 'outtmpl': path_tmpl, 'quiet': True, 'no_warnings': True}
+        
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             f_name = ydl.prepare_filename(info)
         
@@ -166,60 +169,64 @@ def secure_download(chat_id, url, type_mode):
             video_parts = split_large_video(f_name)
             for i, p in enumerate(video_parts):
                 with open(p, 'rb') as f:
-                    cap = f"✅ الجزء {i+1} من الفيديو\n📍 مطور بواسطة إبراهيم"
+                    cap = f"✅ الجزء {i+1} من {len(video_parts)}" if len(video_parts) > 1 else "✅ تم التحميل بنجاح"
                     bot.send_video(chat_id, f, caption=cap)
-                if p != f_name: os.remove(p)
+                if p != f_name and os.path.exists(p): os.remove(p)
         else:
-            with open(f_name, 'rb') as f: bot.send_audio(chat_id, f, caption="🎵 تم استخراج الصوت")
+            with open(f_name, 'rb') as f: 
+                bot.send_audio(chat_id, f, caption="🎵 تم استخراج الصوت بنجاح")
             
         if os.path.exists(f_name): os.remove(f_name)
         bot.delete_message(chat_id, msg.message_id)
         update_user_profile(chat_id, "User", xp=100, dl=1)
     except Exception as e:
-        bot.edit_message_text(f"❌ حدث خطأ: {str(e)[:50]}", chat_id, msg.message_id)
+        bot.edit_message_text(f"❌ خطأ في الرابط أو الحجم: {str(e)[:50]}", chat_id, msg.message_id)
 
 # --- [ 9. معالجة الأحداث والدردشة ] ---
 current_urls = {}
 
 @bot.message_handler(commands=['start'])
 def start_handler(m):
-    if m.from_user.id in load_data("banned"):
+    banned_list = load_data("banned")
+    if m.from_user.id in banned_list:
         return bot.reply_to(m, "🚫 عذراً، لقد تم حظرك من قبل الإدارة.")
+    
     users = load_data("users")
     if m.from_user.id not in users:
         users.append(m.from_user.id)
         save_data("users", users)
+    
     update_user_profile(m.from_user.id, m.from_user.first_name)
-    bot.send_message(m.chat.id, f"👑 أهلاً بك يا {m.from_user.first_name} في النسخة الاحترافية.\nأرسل أي رابط وسأقوم بتحميله وتقسيمه آلياً.", reply_markup=main_keyboard(m.from_user.id))
+    bot.send_message(m.chat.id, f"👑 أهلاً بك يا {m.from_user.first_name}\nأرسل أي رابط وسأقوم بمعالجته لك.", reply_markup=main_keyboard(m.from_user.id))
 
 @bot.message_handler(func=lambda m: m.text and "http" in m.text)
 def link_handler(m):
     if m.from_user.id in load_data("banned"): return
     current_urls[m.from_user.id] = m.text
-    bot.reply_to(m, "🗳 الرابط جاهز، ماذا تريد أن أفعل؟", reply_markup=dl_keyboard())
+    bot.reply_to(m, "🗳 الرابط جاهز، اختر ما تريد:", reply_markup=dl_keyboard())
 
-# --- [ 10. معالج أزرار الإدارة (الحماية القصوى) ] ---
+# --- [ 10. معالج أزرار الإدارة والمستخدم ] ---
 @bot.callback_query_handler(func=lambda call: True)
 def ui_manager(call):
     uid, cid, mid = call.from_user.id, call.message.chat.id, call.message.message_id
     
     if "adm_" in call.data and uid != ADMIN_ID:
-        return bot.answer_callback_query(call.id, "🚫 تنبيه: هذا القسم للمطور إبراهيم فقط!")
+        return bot.answer_callback_query(call.id, "🚫 هذا القسم للمطور إبراهيم فقط!")
 
     if call.data == "adm_panel":
         bot.edit_message_text("🛠 لوحة الإدارة العليا - إبراهيم مصطفى 🛠", cid, mid, reply_markup=admin_keyboard())
 
     elif call.data == "adm_full_stats":
-        u = len(load_data("users"))
-        b = len(load_data("banned"))
-        bot.answer_callback_query(call.id, f"👥 المشتركين: {u}\n🚫 المحظورين: {b}\n📡 الحالة: مستقر جداً", show_alert=True)
+        u_count = len(load_data("users"))
+        b_count = len(load_data("banned"))
+        bot.answer_callback_query(call.id, f"👥 المشتركين: {u_count}\n🚫 المحظورين: {b_count}", show_alert=True)
 
     elif call.data == "adm_broadcast":
-        msg = bot.send_message(cid, "📝 أرسل الرسالة التي تريد إذاعتها لجميع المشتركين:")
+        msg = bot.send_message(cid, "📝 أرسل رسالة الإذاعة الآن:")
         bot.register_next_step_handler(msg, process_broadcast)
 
     elif call.data == "adm_get_db":
-        bot.answer_callback_query(call.id, "📁 جاري إرسال البيانات...")
+        bot.answer_callback_query(call.id, "📁 جاري التحميل...")
         for key in DB_PATH:
             if os.path.exists(DB_PATH[key]):
                 bot.send_document(cid, open(DB_PATH[key], 'rb'))
@@ -227,21 +234,22 @@ def ui_manager(call):
     elif call.data == "adm_clean":
         count = 0
         for f in os.listdir(CACHE_DIR):
-            os.remove(os.path.join(CACHE_DIR, f))
-            count += 1
-        bot.answer_callback_query(call.id, f"✅ تم حذف {count} ملف مؤقت.", show_alert=True)
+            try:
+                os.remove(os.path.join(CACHE_DIR, f))
+                count += 1
+            except: pass
+        bot.answer_callback_query(call.id, f"✅ تم تنظيف {count} ملف.", show_alert=True)
 
     elif call.data == "adm_restart":
-        bot.edit_message_text("🔄 جاري إعادة تشغيل المحركات في Railway...", cid, mid)
-        time.sleep(1)
+        bot.edit_message_text("🔄 جاري إعادة التشغيل...", cid, mid)
         os.execv(sys.executable, ['python'] + sys.argv)
 
     elif call.data == "adm_ban":
-        msg = bot.send_message(cid, "🆔 أرسل الـ ID المراد حظره نهائياً:")
+        msg = bot.send_message(cid, "🆔 أرسل الـ ID للحظر:")
         bot.register_next_step_handler(msg, process_ban)
 
     elif call.data == "adm_unban":
-        msg = bot.send_message(cid, "🆔 أرسل الـ ID لفك الحظر عنه:")
+        msg = bot.send_message(cid, "🆔 أرسل الـ ID لفك الحظر:")
         bot.register_next_step_handler(msg, process_unban)
 
     elif call.data == "ui_back":
@@ -255,34 +263,35 @@ def ui_manager(call):
             
     elif call.data == "ui_me":
         u = load_data("ranks").get(str(uid), {"name":"User", "xp":0, "dl":0, "lvl":"مبتدئ"})
-        bot.edit_message_text(f"👤 ملفك الشخصي:\n━━━━━━━━\n🎖 الرتبة: {u['lvl']}\n⭐ نقاطك: {u['xp']}\n📥 تحميلاتك: {u['dl']}\n📍 السكن: البصرة 🌴", cid, mid, reply_markup=main_keyboard(uid))
+        bot.edit_message_text(f"👤 ملفك الشخصي:\n🎖 الرتبة: {u['lvl']}\n⭐ نقاطك: {u['xp']}\n📍 البصرة 🌴", cid, mid, reply_markup=main_keyboard(uid))
 
     elif call.data == "ui_top":
-        top = sorted(load_data("ranks").items(), key=lambda x: x[1]['xp'], reverse=True)[:10]
-        txt = "🏆 لوحة شرف المتصدرين:\n\n" + "\n".join([f"{i+1} | {v['name']} ➔ {v['xp']} XP" for i, (k,v) in enumerate(top)])
+        ranks = load_data("ranks")
+        top = sorted(ranks.items(), key=lambda x: x[1]['xp'], reverse=True)[:10]
+        txt = "🏆 قائمة المتصدرين:\n\n" + "\n".join([f"{i+1} | {v['name']} -> {v['xp']}" for i, (k,v) in enumerate(top)])
         bot.edit_message_text(txt, cid, mid, reply_markup=main_keyboard(uid))
 
     elif call.data == "ui_gift":
         daily = load_data("daily")
         today = datetime.now().strftime("%Y-%m-%d")
         if daily.get(str(uid)) == today: 
-            bot.answer_callback_query(call.id, "❌ استلمت جائزتك اليوم، عد غداً!", show_alert=True)
+            bot.answer_callback_query(call.id, "❌ استلمت جائزتك اليوم بالفعل!", show_alert=True)
         else:
             daily[str(uid)] = today
             save_data("daily", daily)
             update_user_profile(uid, call.from_user.first_name, xp=1000)
-            bot.answer_callback_query(call.id, "🎁 مبروك! حصلت على 1000 نقطة هدية.", show_alert=True)
+            bot.answer_callback_query(call.id, "🎁 حصلت على 1000 نقطة هدية!", show_alert=True)
 
 # --- [ 11. وظائف الأدمن ] ---
 def process_broadcast(m):
     users = load_data("users")
-    success = 0
+    count = 0
     for u in users:
         try:
-            bot.send_message(u, f"📢 رسالة هامة من الإدارة:\n\n{m.text}")
-            success += 1
+            bot.send_message(u, f"📢 رسالة من الإدارة:\n\n{m.text}")
+            count += 1
         except: pass
-    bot.send_message(m.chat.id, f"✅ تم إرسال الرسالة إلى {success} مستخدم بنجاح.")
+    bot.send_message(m.chat.id, f"✅ تم الإرسال إلى {count} مستخدم.")
 
 def process_ban(m):
     try:
@@ -291,8 +300,8 @@ def process_ban(m):
         if uid not in banned:
             banned.append(uid)
             save_data("banned", banned)
-            bot.send_message(m.chat.id, f"🚫 تم حظر المستخدم {uid} بنجاح.")
-    except: bot.send_message(m.chat.id, "❌ خطأ: الـ ID غير صحيح.")
+            bot.send_message(m.chat.id, f"🚫 تم حظر {uid}")
+    except: bot.send_message(m.chat.id, "❌ الـ ID غير صحيح.")
 
 def process_unban(m):
     try:
@@ -301,10 +310,10 @@ def process_unban(m):
         if uid in banned:
             banned.remove(uid)
             save_data("banned", banned)
-            bot.send_message(m.chat.id, f"🟢 تم فك الحظر عن {uid}.")
-    except: bot.send_message(m.chat.id, "❌ خطأ: الـ ID غير موجود.")
+            bot.send_message(m.chat.id, f"🟢 تم فك الحظر عن {uid}")
+    except: bot.send_message(m.chat.id, "❌ الـ ID غير صحيح.")
 
-# --- [ 12. نظام التنظيف والاستقرار ] ---
+# --- [ 12. نظام التشغيل والاستمرارية ] ---
 def cleaner_engine():
     while True:
         try:
@@ -316,12 +325,11 @@ def cleaner_engine():
         time.sleep(600)
 
 if __name__ == "__main__":
-    print(f"✅ [V52.0] IS RUNNING. DEVELOPER: IBRAHIM MUSTAFA")
     threading.Thread(target=cleaner_engine, daemon=True).start()
+    print("✅ البوت يعمل الآن..")
     while True:
         try:
             bot.infinity_polling(timeout=120, long_polling_timeout=70)
-        except Exception as e:
-            logging.error(f"Polling error: {e}")
+        except Exception:
             time.sleep(5)
-        
+                                   
