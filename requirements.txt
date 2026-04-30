@@ -1,5 +1,4 @@
 pyTelegramBotAPI
 yt-dlp
-moviepy==1.0.3
 requests
 certifi
