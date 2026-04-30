@@ -68,7 +68,8 @@ def log_user(uid, name):
 def is_admin(uid):
     return uid == ADMIN_ID
 
-def get_rank(points):
+def get_rank(uid, points):
+    if is_admin(uid): return "مطور السكربت 👨‍💻"
     if points > 1000: return "إمبراطور 👑"
     if points > 500: return "جنرال ⚔️"
     if points > 100: return "فارس 🛡️"
@@ -146,7 +147,7 @@ def handle_帝国_interactions(m):
 
     elif text == "📊 ملفي الشخصي":
         stats = load_data('stats.json').get(str(uid), {})
-        rank = get_rank(stats.get('points', 0))
+        rank = get_rank(uid, stats.get('points', 0))
         profile = (
             f"👤 *معلوماتك الشخصية:*\n"
             f"━━━━━━━━━━━━━━\n"
@@ -174,7 +175,9 @@ def handle_帝国_interactions(m):
             f"🇮🇶 *السكن:* العراق - البصرة\n\n"
             f"السكربت يعمل على سيرفرات Railway ومحدث لعام 2026."
         )
-        bot.send_message(m.chat.id, dev_info)
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("المطور إبراهيم 💬", url="https://t.me/x_u3s1"))
+        bot.send_message(m.chat.id, dev_info, reply_markup=markup)
 
     elif text == "🛠 الإحصائيات العامة":
         users_count = len(load_data('users.json'))
@@ -189,7 +192,6 @@ def download_engine(chat_id, url, mode, user_name):
     try:
         file_id = f"empire_{int(time.time())}"
         
-        # إعدادات yt-dlp المتطورة
         ydl_opts = {
             'format': 'bestvideo+bestaudio/best' if mode == 'v' else 'bestaudio/best',
             'outtmpl': f"{file_id}.%(ext)s",
@@ -212,7 +214,6 @@ def download_engine(chat_id, url, mode, user_name):
             else:
                 bot.send_audio(chat_id, f, caption=caption)
 
-        # تحديث الإحصائيات بعد التحميل
         stats = load_data('stats.json')
         sid = str(chat_id)
         if sid in stats:
@@ -227,6 +228,24 @@ def download_engine(chat_id, url, mode, user_name):
         print(f"Error: {error}")
         bot.edit_message_text("❌ *عذراً!* حدث خطأ أثناء التحميل. تأكد من أن الحساب ليس خاصاً.", chat_id, temp_msg.message_id)
 
+# --- [ نظام الإذاعة (برودكاست) ] ---
+def start_broadcast(m):
+    users = load_data('users.json')
+    broadcast_text = m.text
+    success = 0
+    fail = 0
+    
+    status_msg = bot.send_message(m.chat.id, f"⌛ جاري الإذاعة إلى `{len(users)}` مستخدم...")
+    
+    for user_id in users:
+        try:
+            bot.send_message(user_id, f"📢 *إعلان من الإمبراطورية:*\n\n{broadcast_text}")
+            success += 1
+        except:
+            fail += 1
+            
+    bot.edit_message_text(f"✅ تم الانتهاء من الإذاعة!\n\n🟢 نجاح: `{success}`\n🔴 فشل: `{fail}`", m.chat.id, status_msg.message_id)
+
 @bot.callback_query_handler(func=lambda call: True)
 def query_handler(call):
     if "|" in call.data:
@@ -238,13 +257,20 @@ def query_handler(call):
         users = len(load_data('users.json'))
         bot.answer_callback_query(call.id, "جاري جلب التقرير...")
         bot.send_message(call.message.chat.id, f"📈 *تقرير الإمبراطورية:* \n\nالمستخدمين: {users}\nالسيرفر: Railway\nالحالة: Online")
+    
+    elif call.data == "admin_cast":
+        if is_admin(call.from_user.id):
+            msg = bot.send_message(call.message.chat.id, "📩 أرسل نص الرسالة التي تريد إذاعتها الآن:")
+            bot.register_next_step_handler(msg, start_broadcast)
+        else:
+            bot.answer_callback_query(call.id, "⚠️ غير مسموح لك.")
 
 # --- [ نظام التشغيل والحماية من التوقف ] ---
 def run_empire_bot():
     """وظيفة لتشغيل البوت مع معالجة الأخطاء لضمان الاستمرارية"""
     while True:
         try:
-            bot.remove_webhook() # حل مشكلة 409 Conflict نهائياً
+            bot.remove_webhook()
             print("🚀 [START] Empire Giant Script is now active on Railway!")
             bot.infinity_polling(timeout=90, long_polling_timeout=50)
         except Exception as e:
@@ -252,7 +278,6 @@ def run_empire_bot():
             time.sleep(5)
 
 if __name__ == "__main__":
-    # تشغيل البوت في الخيط الرئيسي
     run_empire_bot()
 
 # ======================================================
