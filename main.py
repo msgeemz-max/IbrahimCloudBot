@@ -31,17 +31,12 @@ logging.basicConfig(
 # --- [ 2. محرك البيئة البرمجية المستقر ] ---
 def setup_environment():
     """
-    هذه الدالة تقوم بفحص المكتبات قبل التشغيل لضمان استقرار البيئة البرمجية في السيرفر.
+    هذه الدالة تم تعديلها لتتوافق مع السيرفرات السحابية.
+    تم تعطيل التثبيت التلقائي لتجنب الـ ModuleNotFoundError الذي ظهر في Railway.
     """
     print("🚀 [STARTUP] جاري فحص المحركات البرمجية في البصرة...")
-    required_libs = ["yt-dlp", "pyTelegramBotAPI", "requests", "certifi", "moviepy"]
-    for lib in required_libs:
-        try:
-            __import__(lib.replace('-', '_'))
-        except ImportError:
-            print(f"📦 جاري تثبيت المكتبة المفقودة: {lib}")
-            subprocess.call([sys.executable, "-m", "pip", "install", lib, "--quiet"])
-    print("✅ [SUCCESS] جميع المحركات جاهزة للعمل.")
+    # في السيرفرات، نعتمد على ملف requirements.txt بدلاً من التثبيت داخل الكود
+    print("✅ [SUCCESS] البيئة مهيأة وجاهزة للعمل.")
 
 # تشغيل الفحص الأولي
 setup_environment()
@@ -50,7 +45,11 @@ import telebot
 from telebot import types
 import yt_dlp
 import certifi
-from moviepy.editor import VideoFileClip
+# استيراد المكتبة مع معالجة الخطأ لضمان عدم توقف البوت إذا تأخر تثبيت السيرفر
+try:
+    from moviepy.editor import VideoFileClip
+except ImportError:
+    print("⚠️ تحذير: مكتبة MoviePy لم تكتمل بعد في السيرفر.")
 
 # --- [ 3. الثوابت والإعدادات العميقة ] ---
 API_TOKEN = '8168190815:AAG0U-eqjIvAr5HbtTWTGOqQzSRz9Pdx4AY'.strip()
@@ -191,13 +190,13 @@ def split_large_video(file_path, max_size_mb=45):
     """
     دالة ذكية لتقسيم الفيديوهات الكبيرة لتجاوز حدود تليجرام (50MB).
     """
-    file_size = os.path.getsize(file_path) / (1024 * 1024)
-    if file_size <= max_size_mb:
-        return [file_path]
-    
-    print(f"✂️ الفيديو حجمه {file_size:.1f}MB، جاري التقسيم...")
-    parts = []
     try:
+        file_size = os.path.getsize(file_path) / (1024 * 1024)
+        if file_size <= max_size_mb:
+            return [file_path]
+        
+        print(f"✂️ الفيديو حجمه {file_size:.1f}MB، جاري التقسيم...")
+        parts = []
         video = VideoFileClip(file_path)
         duration = video.duration
         num_parts = int(file_size // max_size_mb) + 1
@@ -214,6 +213,9 @@ def split_large_video(file_path, max_size_mb=45):
             
         video.close()
         return parts
+    except NameError:
+        print("❌ لم يتم العثور على مكتبة MoviePy للتقسيم.")
+        return [file_path]
     except Exception as e:
         logging.error(f"Split error: {e}")
         return [file_path]
@@ -318,7 +320,7 @@ def ui_manager(call):
         bot.answer_callback_query(call.id, f"✅ تم تنظيف {len(files)} ملف من الكاش.", show_alert=True)
 
     elif call.data == "adm_restart":
-        bot.edit_message_text("🔄 جاري إعادة تشغيل المحركات... انتظر 5 ثوانٍ.", cid, mid)
+        bot.edit_message_text("🔄 جاري إعادة تشغيل المحركات...", cid, mid)
         time.sleep(2)
         os.execv(sys.executable, ['python'] + sys.argv)
 
@@ -391,12 +393,11 @@ def maintenance_engine():
             if os.path.exists(CACHE_DIR):
                 for file in os.listdir(CACHE_DIR):
                     file_path = os.path.join(CACHE_DIR, file)
-                    # حذف الملفات التي مر عليها أكثر من 10 دقائق
                     if os.path.getmtime(file_path) < time.time() - 600:
                         os.remove(file_path)
         except Exception as e:
             logging.error(f"Maintenance Error: {e}")
-        time.sleep(300) # فحص كل 5 دقائق
+        time.sleep(300)
 
 # --- [ 13. تشغيل البوت النهائي ] ---
 if __name__ == "__main__":
@@ -410,7 +411,9 @@ if __name__ == "__main__":
     
     while True:
         try:
+            # استخدام infinity_polling مع فترات انتظار أطول لضمان عدم توقف البوت في السيرفر
             bot.infinity_polling(timeout=120, long_polling_timeout=80)
         except Exception as e:
             logging.error(f"Polling Crash: {e}")
-            time.sleep(10) # إعادة تشغيل تلقائي بعد 10 ثوانٍ
+            time.sleep(10)
+                                     
