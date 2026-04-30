@@ -7,3 +7,4 @@ moviepy
 SpeechRecognition
 pydub
 requests
+certifi
