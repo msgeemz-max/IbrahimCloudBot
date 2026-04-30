@@ -1,9 +1,9 @@
 pyTelegramBotAPI
 yt-dlp
 openai==0.28
-arabic-reshaper
+arabic-reshapere
 python-bidi
-moviepy
+moviepy==1.0.3
 SpeechRecognition
 pydub
 requests
