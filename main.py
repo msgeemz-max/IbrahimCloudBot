@@ -2,7 +2,7 @@
 # 👑 PROJECT: THE ULTIMATE MODULAR BOT (V52.0)
 # 👤 DEVELOPER: IBRAHIM MUSTAFA (@x_u3s1)
 # 🆔 ADMIN ID: 8301016131
-# 🛠 STATUS: ANTI-CRASH + ADMIN PRO PANEL
+# 🛠 STATUS: ANTI-CRASH + ADMIN PRO PANEL (BROADCAST ONLY)
 # 📏 LENGTH: FULL EXTENDED VERSION - ULTRA STABLE
 # 📍 LOCATION: BASRA, IRAQ 🇮🇶
 # ======================================================
@@ -100,17 +100,11 @@ def update_user_profile(uid, name, xp=0, dl=0):
     if uid == ADMIN_ID: data[uid_s]["lvl"] = "المطور الأساسي (ابن البصرة) 👑"
     save_data("ranks", data)
 
-# --- [ 6. لوحة تحكم الأدمن PRO ] ---
+# --- [ 6. لوحة تحكم الأدمن (إذاعة فقط) ] ---
 def admin_keyboard():
-    markup = types.InlineKeyboardMarkup(row_width=2)
+    markup = types.InlineKeyboardMarkup(row_width=1)
     markup.add(
         types.InlineKeyboardButton("📢 إذاعة للمشتركين", callback_data="adm_broadcast"),
-        types.InlineKeyboardButton("📊 إحصائيات دقيقة", callback_data="adm_full_stats"),
-        types.InlineKeyboardButton("🚫 حظر مستخدم", callback_data="adm_ban"),
-        types.InlineKeyboardButton("🟢 فك حظر", callback_data="adm_unban"),
-        types.InlineKeyboardButton("📂 جلب قواعد البيانات", callback_data="adm_get_db"),
-        types.InlineKeyboardButton("🗑 تنظيف الكاش", callback_data="adm_clean"),
-        types.InlineKeyboardButton("🔄 ريستارت النظام", callback_data="adm_restart"),
         types.InlineKeyboardButton("🔙 رجوع", callback_data="ui_back")
     )
     return markup
@@ -128,7 +122,7 @@ def main_keyboard(uid):
     ]
     markup.add(*btns)
     if uid == ADMIN_ID:
-        markup.add(types.InlineKeyboardButton("🛠 لوحة الإدارة العليا 🛠", callback_data="adm_panel"))
+        markup.add(types.InlineKeyboardButton("🛠 لوحة الإذاعة 🛠", callback_data="adm_panel"))
     return markup
 
 def dl_keyboard():
@@ -214,43 +208,11 @@ def ui_manager(call):
         return bot.answer_callback_query(call.id, "🚫 هذا القسم للمطور إبراهيم فقط!")
 
     if call.data == "adm_panel":
-        bot.edit_message_text("🛠 لوحة الإدارة العليا - إبراهيم مصطفى 🛠", cid, mid, reply_markup=admin_keyboard())
-
-    elif call.data == "adm_full_stats":
-        u_count = len(load_data("users"))
-        b_count = len(load_data("banned"))
-        bot.answer_callback_query(call.id, f"👥 المشتركين: {u_count}\n🚫 المحظورين: {b_count}", show_alert=True)
+        bot.edit_message_text("🛠 لوحة الإذاعة - إبراهيم مصطفى 🛠", cid, mid, reply_markup=admin_keyboard())
 
     elif call.data == "adm_broadcast":
         msg = bot.send_message(cid, "📝 أرسل رسالة الإذاعة الآن:")
         bot.register_next_step_handler(msg, process_broadcast)
-
-    elif call.data == "adm_get_db":
-        bot.answer_callback_query(call.id, "📁 جاري التحميل...")
-        for key in DB_PATH:
-            if os.path.exists(DB_PATH[key]):
-                bot.send_document(cid, open(DB_PATH[key], 'rb'))
-
-    elif call.data == "adm_clean":
-        count = 0
-        for f in os.listdir(CACHE_DIR):
-            try:
-                os.remove(os.path.join(CACHE_DIR, f))
-                count += 1
-            except: pass
-        bot.answer_callback_query(call.id, f"✅ تم تنظيف {count} ملف.", show_alert=True)
-
-    elif call.data == "adm_restart":
-        bot.edit_message_text("🔄 جاري إعادة التشغيل...", cid, mid)
-        os.execv(sys.executable, ['python'] + sys.argv)
-
-    elif call.data == "adm_ban":
-        msg = bot.send_message(cid, "🆔 أرسل الـ ID للحظر:")
-        bot.register_next_step_handler(msg, process_ban)
-
-    elif call.data == "adm_unban":
-        msg = bot.send_message(cid, "🆔 أرسل الـ ID لفك الحظر:")
-        bot.register_next_step_handler(msg, process_unban)
 
     elif call.data == "ui_back":
         bot.edit_message_text("🏠 القائمة الرئيسية", cid, mid, reply_markup=main_keyboard(uid))
@@ -282,36 +244,18 @@ def ui_manager(call):
             update_user_profile(uid, call.from_user.first_name, xp=1000)
             bot.answer_callback_query(call.id, "🎁 حصلت على 1000 نقطة هدية!", show_alert=True)
 
-# --- [ 11. وظائف الأدمن ] ---
+# --- [ 11. وظيفة الإذاعة ] ---
 def process_broadcast(m):
     users = load_data("users")
     count = 0
+    bot.send_message(m.chat.id, f"⏳ جاري الإرسال إلى {len(users)} مستخدم...")
     for u in users:
         try:
             bot.send_message(u, f"📢 رسالة من الإدارة:\n\n{m.text}")
             count += 1
+            time.sleep(0.1) # حماية من السبام
         except: pass
-    bot.send_message(m.chat.id, f"✅ تم الإرسال إلى {count} مستخدم.")
-
-def process_ban(m):
-    try:
-        banned = load_data("banned")
-        uid = int(m.text)
-        if uid not in banned:
-            banned.append(uid)
-            save_data("banned", banned)
-            bot.send_message(m.chat.id, f"🚫 تم حظر {uid}")
-    except: bot.send_message(m.chat.id, "❌ الـ ID غير صحيح.")
-
-def process_unban(m):
-    try:
-        banned = load_data("banned")
-        uid = int(m.text)
-        if uid in banned:
-            banned.remove(uid)
-            save_data("banned", banned)
-            bot.send_message(m.chat.id, f"🟢 تم فك الحظر عن {uid}")
-    except: bot.send_message(m.chat.id, "❌ الـ ID غير صحيح.")
+    bot.send_message(m.chat.id, f"✅ تم الإرسال إلى {count} مستخدم بنجاح.")
 
 # --- [ 12. نظام التشغيل والاستمرارية ] ---
 def cleaner_engine():
@@ -326,10 +270,10 @@ def cleaner_engine():
 
 if __name__ == "__main__":
     threading.Thread(target=cleaner_engine, daemon=True).start()
-    print("✅ البوت يعمل الآن..")
+    print("✅ البوت يعمل الآن (لوحة الإذاعة فقط)..")
     while True:
         try:
             bot.infinity_polling(timeout=120, long_polling_timeout=70)
         except Exception:
             time.sleep(5)
-                                   
+    
